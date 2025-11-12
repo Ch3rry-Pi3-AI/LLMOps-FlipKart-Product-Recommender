@@ -1,13 +1,14 @@
-# 🐳 **Containerisation and Kubernetes Deployment — LLMOps Flipkart Product Recommender System**
+# 📈 **Monitoring and Observability — LLMOps Flipkart Product Recommender System**
 
-This stage packages the **Flask-based RAG application** of the **LLMOps Flipkart Product Recommender System** into a **Docker container** and deploys it on a **Kubernetes cluster**.
+This stage introduces the **monitoring and observability layer** for the **LLMOps Flipkart Product Recommender System** using **Prometheus** and **Grafana**.
+With these integrations, the deployed application gains **real-time metrics tracking, performance visibility, and system health monitoring** across the Kubernetes cluster.
 
-By containerising the application, this stage ensures **portability, reproducibility, and scalability** across environments.
-The Kubernetes manifest then defines how the container is deployed, networked, and monitored within the cluster — forming the foundation of a production-ready **MLOps deployment pipeline**.
+Prometheus collects metrics from the **Flask RAG backend**, while Grafana provides interactive dashboards to visualise performance trends, latency, and throughput — completing the project’s **MLOps observability stack**.
 
 <p align="center">
-  <img src="img/flask/flask_app.gif" alt="Deployed Flask Application Overview" style="width:100%; height:auto;">
+  <img src="img/monitoring/monitoring_dashboard.gif" alt="Prometheus and Grafana Monitoring Dashboard" style="width:100%; height:auto;">
 </p>
+
 
 
 ## 🗂️ **Project Structure (Updated)**
@@ -26,10 +27,15 @@ llmops-flipkart-product-recommender/
 │   ├── data_ingestion.py
 │   └── rag_chain.py
 ├── grafana/
+│   └── grafana-deployment.yaml          # 📊 Deploys Grafana dashboard service (new)
 ├── prometheus/
+│   ├── prometheus-configmap.yaml        # ⚙️ Prometheus scrape configuration (new)
+│   └── prometheus-deployment.yaml       # 🚀 Prometheus Deployment + Service (new)
 ├── img/
-│   └── flask/
-│       └── flask_app.gif
+│   ├── flask/
+│   │   └── flask_app.gif
+│   └── monitoring/
+│       └── monitoring_dashboard.gif
 ├── static/
 │   └── style.css
 ├── templates/
@@ -39,8 +45,8 @@ llmops-flipkart-product-recommender/
 │   ├── custom_exception.py
 │   └── logger.py
 ├── app.py
-├── Dockerfile                      # 🐳 Defines container image for Flask RAG application
-├── flask-deployment.yaml           # ☸️ Kubernetes manifest for cluster deployment
+├── Dockerfile
+├── flask-deployment.yaml
 ├── main.py
 ├── pyproject.toml
 ├── requirements.txt
@@ -49,74 +55,83 @@ llmops-flipkart-product-recommender/
 └── README.md
 ```
 
-## ⚙️ **Overview of the Containerisation and Deployment Layer**
 
-### **`Dockerfile`**
 
-The `Dockerfile` defines the **container image** for the Flask application.
-It ensures a clean, reproducible environment with all dependencies, environment variables, and entrypoints configured.
+## ⚙️ **Overview of the Monitoring Components**
 
-Key steps include:
+### **1. `prometheus/prometheus-configmap.yaml`**
 
-1. **Base Image**
-   Uses an official lightweight Python base (e.g., `python:3.12-slim`) for a minimal runtime footprint.
-2. **Dependency Installation**
-   Copies `requirements.txt` and installs dependencies in a virtual environment.
-3. **Environment Setup**
-   Copies application files, loads environment variables, and sets working directory to `/app`.
-4. **Port Exposure**
-   Exposes port `5000`, matching the Flask service port.
-5. **Startup Command**
-   Launches the application via:
+Defines the Prometheus configuration file (`prometheus.yml`) containing:
 
-   ```dockerfile
-   CMD ["python", "app.py"]
-   ```
+* Global scrape interval of **15 seconds**
+* Targets for:
 
-This container image can be built locally or in CI/CD pipelines and pushed to a registry such as **Google Artifact Registry**, **Docker Hub**, or **GitHub Packages** for deployment.
+  * **Prometheus itself** (`localhost:9090`)
+  * **Flask app metrics** (`/metrics` endpoint on port `5000`)
 
-### **`flask-deployment.yaml`**
+This enables continuous metrics collection from the deployed RAG application.
 
-This manifest defines the **Kubernetes resources** required to deploy the Flask container in a cluster.
 
-It automates the deployment, scaling, and service exposure of the RAG-powered chatbot.
 
-Key sections:
+### **2. `prometheus/prometheus-deployment.yaml`**
 
-* **Deployment**
+Deploys Prometheus within the **`monitoring` namespace**, using the ConfigMap above.
+It mounts the configuration file into the Prometheus container and exposes the service via **NodePort `32001`** for external access.
 
-  * Creates and manages Pods running the Flask container.
-  * Specifies the container image and tag (e.g., `flask-llmops:latest`).
-  * Defines resource requests and limits for stable operation.
-  * Uses multiple replicas for high availability.
-* **Service**
+This setup allows Prometheus to:
 
-  * Exposes the Flask Pods internally or externally depending on the chosen type:
+* Scrape metrics from the Flask backend
+* Store time-series performance data
+* Provide a data source for Grafana visualisation
 
-    ```yaml
-    type: LoadBalancer
-    ports:
-      - port: 80
-        targetPort: 5000
-    ```
-  * Routes incoming traffic to the Flask app.
-* **Labels and Selectors**
 
-  * Labels Pods with `app: llmops-flipkart-flask` for easy monitoring and routing.
-* **Health Probes (Optional)**
 
-  * Liveness and readiness probes hit `/health` to ensure Pods are running properly before serving traffic.
+### **3. `grafana/grafana-deployment.yaml`**
 
-Together, the Deployment and Service definitions automate the process of rolling out updates, ensuring uptime, and providing cluster-level observability.
+Deploys **Grafana** in the `monitoring` namespace and exposes it on **NodePort `32000`**.
+Grafana connects to Prometheus (`prometheus-service:9090`) as its data source, offering interactive dashboards for:
+
+* Application performance (response time, requests per second)
+* Resource utilisation
+* Error tracking and uptime monitoring
+
+
+
+## 🧩 **Example Usage**
+
+### **Step 1 — Create the Monitoring Namespace**
+
+```bash
+kubectl create ns monitoring
+```
+
+### **Step 2 — Deploy Prometheus**
+
+```bash
+kubectl apply -f prometheus/prometheus-configmap.yaml
+kubectl apply -f prometheus/prometheus-deployment.yaml
+```
+
+### **Step 3 — Deploy Grafana**
+
+```bash
+kubectl apply -f grafana/grafana-deployment.yaml
+```
+
+### **Step 4 — Access Dashboards**
+
+* **Prometheus:** `http://<node-ip>:32001`
+* **Grafana:** `http://<node-ip>:32000` (default login: `admin / admin`)
+
+
 
 ## ✅ **In Summary**
 
-This stage delivers the **containerisation and orchestration layer** of the Flipkart Product Recommender System:
+This stage introduces the **monitoring and observability layer** for the Flipkart Product Recommender System:
 
-* Introduces `Dockerfile` — a **reproducible container image definition** for the Flask-based RAG application
-* Adds `flask-deployment.yaml` — a **Kubernetes manifest** for scalable deployment and load-balanced access
-* Supports **Prometheus metrics integration** for cluster monitoring
-* Enables **rapid deployment** to both local and cloud Kubernetes environments
-* Establishes the foundation for **CI/CD automation and cloud-native scaling**
+* Adds `prometheus-configmap.yaml` and `prometheus-deployment.yaml` — to **collect and store metrics** from the Flask backend.
+* Adds `grafana-deployment.yaml` — to **visualise metrics and performance dashboards**.
+* Establishes a **monitoring namespace** in Kubernetes for Prometheus and Grafana.
+* Enables continuous visibility into system health, latency, and performance across the cluster.
 
-The **containerisation and Kubernetes deployment stage** marks the transition from development to **operational MLOps infrastructure**, enabling scalable, monitored, and portable deployments of your intelligent recommender system.
+With this stage complete, the project now includes **end-to-end monitoring**, transforming it into a **fully observable, production-grade MLOps system**.

@@ -1,0 +1,62 @@
+# ---------------------------------------------------------------------
+# 📈 Prometheus Deployment and Service
+# ---------------------------------------------------------------------
+# This manifest deploys Prometheus in the "monitoring" namespace,
+# mounting the configuration from the ConfigMap defined above.
+# It exposes Prometheus through a NodePort service for external access.
+# ---------------------------------------------------------------------
+
+# --------------------------------------------------------------
+# 🧩 Prometheus Deployment
+# --------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus
+          # Use custom configuration file from mounted volume
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+          ports:
+            - containerPort: 9090
+          # Mount configuration from ConfigMap
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus
+      # Volume definition referencing the ConfigMap
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config
+
+---
+# --------------------------------------------------------------
+# 🌐 Prometheus Service
+# --------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: monitoring
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - protocol: TCP
+      port: 9090          # External service port
+      targetPort: 9090    # Prometheus container port
+      nodePort: 32001     # NodePort for external access
+  type: NodePort

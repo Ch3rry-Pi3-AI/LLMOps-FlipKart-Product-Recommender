@@ -1,0 +1,34 @@
+# ---------------------------------------------------------------------
+# 📊 Prometheus Configuration — ConfigMap
+# ---------------------------------------------------------------------
+# This ConfigMap defines the Prometheus configuration file used to
+# scrape metrics from the Prometheus server itself and the Flask app.
+# ---------------------------------------------------------------------
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      # Default interval for scraping all configured targets
+      scrape_interval: 15s
+
+    scrape_configs:
+      # ----------------------------------------------------------
+      # Prometheus Self-Monitoring
+      # ----------------------------------------------------------
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      # ----------------------------------------------------------
+      # Flask Application Monitoring
+      # ----------------------------------------------------------
+      - job_name: 'flask-app'
+        metrics_path: /metrics
+        static_configs:
+          # Replace this IP with the external IP of your Flask Service
+          - targets: ['34.42.228.136:5000']

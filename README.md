@@ -83,8 +83,4 @@ llmops-flipkart-product-recommender/
 The **LLMOps Flipkart Product Recommender System** demonstrates how to operationalise a **retrieval-augmented recommendation pipeline** within an **MLOps/LLMOps framework**.
 It connects every layer — from **data ingestion and model inference** to **observability and orchestration** — using tools like **Docker**, **Kubernetes**, **Prometheus**, and **Grafana**.
 
-<p align="center">
-  <img src="img/monitoring/monitoring_dashboard.gif" alt="Monitoring Dashboard Overview" width="100%">
-</p>
-
 This project serves as a **blueprint for deploying LLM-powered recommendation systems** in a **scalable, cloud-native** manner — merging **intelligent retrieval**, **application interactivity**, and **real-time monitoring** into a single cohesive production pipeline.

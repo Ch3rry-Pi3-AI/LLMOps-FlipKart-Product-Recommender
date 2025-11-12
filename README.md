@@ -1,137 +1,160 @@
-# 📈 **Monitoring and Observability — LLMOps Flipkart Product Recommender System**
+# ☁️ **GCP Virtual Machine Setup — LLMOps Flipkart Product Recommender**
 
-This stage introduces the **monitoring and observability layer** for the **LLMOps Flipkart Product Recommender System** using **Prometheus** and **Grafana**.
-With these integrations, the deployed application gains **real-time metrics tracking, performance visibility, and system health monitoring** across the Kubernetes cluster.
+In this stage, we deploy our environment to **Google Cloud Platform (GCP)** using a **Compute Engine Virtual Machine (VM)** and install the **Docker Engine**.
+This setup provides a reliable cloud-based environment for building, testing, and running the **LLMOps Flipkart Product Recommender** inside containers.
 
-Prometheus collects metrics from the **Flask RAG backend**, while Grafana provides interactive dashboards to visualise performance trends, latency, and throughput — completing the project’s **MLOps observability stack**.
+## 🧭 **Step 1 — Launch a GCP VM**
+
+1. Log into or sign up for [**Google Cloud Platform**](https://cloud.google.com/).
+2. Search for **Compute Engine** in the GCP console and go to **VM instances**.
+3. Click **+ Create instance**.
+
+### Machine Configuration
+
+Keep all defaults **except** for the *Machine type*.
+Change it to:
+
+```
+e2-standard-4 (4 vCPU, 2 core, 16 GB memory)
+```
+
+in the **Standard** tab.
+
+### OS and Storage
+
+Under **OS and storage**, click **Change** and select the options shown below:
 
 <p align="center">
-  <img src="img/monitoring/monitoring_dashboard.gif" alt="Prometheus and Grafana Monitoring Dashboard" style="width:100%; height:auto;">
+  <img src="img/vm_setup/change_os.png" alt="Change OS Settings in GCP" width="80%">
 </p>
 
+### Networking
 
+Under **Networking → Firewall**, check the following boxes:
 
-## 🗂️ **Project Structure (Updated)**
+* ✅ Allow HTTP traffic
+* ✅ Allow HTTPS traffic
+* ✅ Allow Load Balancer Health Checks
 
-```text
-llmops-flipkart-product-recommender/
-├── .env
-├── .gitignore
-├── .python-version
-├── data/
-│   └── flipkart_product_review.csv
-├── flipkart/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── data_converter.py
-│   ├── data_ingestion.py
-│   └── rag_chain.py
-├── grafana/
-│   └── grafana-deployment.yaml          # 📊 Deploys Grafana dashboard service (new)
-├── prometheus/
-│   ├── prometheus-configmap.yaml        # ⚙️ Prometheus scrape configuration (new)
-│   └── prometheus-deployment.yaml       # 🚀 Prometheus Deployment + Service (new)
-├── img/
-│   ├── flask/
-│   │   └── flask_app.gif
-│   └── monitoring/
-│       └── monitoring_dashboard.gif
-├── static/
-│   └── style.css
-├── templates/
-│   └── index.html
-├── utils/
-│   ├── __init__.py
-│   ├── custom_exception.py
-│   └── logger.py
-├── app.py
-├── Dockerfile
-├── flask-deployment.yaml
-├── main.py
-├── pyproject.toml
-├── requirements.txt
-├── setup.py
-├── uv.lock
-└── README.md
-```
+Also **enable IP forwarding**.
 
+Now click **Create** to launch your instance.
 
+When the instance is ready, click **SSH** under *Connect* to open an SSH-in-browser terminal.
 
-## ⚙️ **Overview of the Monitoring Components**
+## ⚙️ **Step 2 — Install Docker Engine**
 
-### **1. `prometheus/prometheus-configmap.yaml`**
+Go to the official Docker documentation:
+👉 [https://docs.docker.com/engine/install/ubuntu/](https://docs.docker.com/engine/install/ubuntu/)
 
-Defines the Prometheus configuration file (`prometheus.yml`) containing:
-
-* Global scrape interval of **15 seconds**
-* Targets for:
-
-  * **Prometheus itself** (`localhost:9090`)
-  * **Flask app metrics** (`/metrics` endpoint on port `5000`)
-
-This enables continuous metrics collection from the deployed RAG application.
-
-
-
-### **2. `prometheus/prometheus-deployment.yaml`**
-
-Deploys Prometheus within the **`monitoring` namespace**, using the ConfigMap above.
-It mounts the configuration file into the Prometheus container and exposes the service via **NodePort `32001`** for external access.
-
-This setup allows Prometheus to:
-
-* Scrape metrics from the Flask backend
-* Store time-series performance data
-* Provide a data source for Grafana visualisation
-
-
-
-### **3. `grafana/grafana-deployment.yaml`**
-
-Deploys **Grafana** in the `monitoring` namespace and exposes it on **NodePort `32000`**.
-Grafana connects to Prometheus (`prometheus-service:9090`) as its data source, offering interactive dashboards for:
-
-* Application performance (response time, requests per second)
-* Resource utilisation
-* Error tracking and uptime monitoring
-
-
-
-## 🧩 **Example Usage**
-
-### **Step 1 — Create the Monitoring Namespace**
+Scroll down to **“Install using the apt repository”** and copy the code under **1. Set up Docker’s apt repository.**
+Paste the following into your VM terminal:
 
 ```bash
-kubectl create ns monitoring
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
 ```
 
-### **Step 2 — Deploy Prometheus**
+Then scroll to **2. Install the Docker packages** and run only the first command:
 
 ```bash
-kubectl apply -f prometheus/prometheus-configmap.yaml
-kubectl apply -f prometheus/prometheus-deployment.yaml
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-### **Step 3 — Deploy Grafana**
+To verify the installation, run:
 
 ```bash
-kubectl apply -f grafana/grafana-deployment.yaml
+sudo docker run hello-world
 ```
 
-### **Step 4 — Access Dashboards**
+You should see a message beginning with:
 
-* **Prometheus:** `http://<node-ip>:32001`
-* **Grafana:** `http://<node-ip>:32000` (default login: `admin / admin`)
+```
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+```
 
+## 🧪 **Step 3 — Enable Docker for Your User**
 
+Next, go to:
+👉 [https://docs.docker.com/engine/install/linux-postinstall/](https://docs.docker.com/engine/install/linux-postinstall/)
 
-## ✅ **In Summary**
+Copy and paste the following commands into your terminal:
 
-This stage introduces the **monitoring and observability layer** for the Flipkart Product Recommender System:
+```bash
+sudo groupadd docker
+sudo usermod -aG docker $USER
+newgrp docker
+docker run hello-world
+```
 
-* Adds `prometheus-configmap.yaml` and `prometheus-deployment.yaml` — to **collect and store metrics** from the Flask backend.
-* Adds `grafana-deployment.yaml` — to **visualise metrics and performance dashboards**.
-* Establishes a **monitoring namespace** in Kubernetes for Prometheus and Grafana.
-* Enables continuous visibility into system health, latency, and performance across the cluster.
+This allows you to run Docker without needing `sudo`.
 
-With this stage complete, the project now includes **end-to-end monitoring**, transforming it into a **fully observable, production-grade MLOps system**.
+Now scroll further down the same page to **“Configure Docker to start on boot with systemd.”**
+Run the following commands:
+
+```bash
+sudo systemctl enable docker.service
+sudo systemctl enable containerd.service
+```
+
+You should see output like:
+
+```
+Synchronizing state of docker.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable docker
+```
+
+## ✅ **Step 4 — Confirm Installation**
+
+Finally, confirm the installation by checking the version:
+
+```bash
+docker version
+```
+
+You should see output similar to the following:
+
+```
+Client: Docker Engine - Community
+ Version:           29.0.0
+ API version:       1.52
+ Go version:        go1.25.4
+ Git commit:        3d4129b
+ Built:             Mon Nov 10 21:46:31 2025
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          29.0.0
+  API version:      1.52 (minimum version 1.44)
+  Go version:       go1.25.4
+  Git commit:       d105562
+  Built:            Mon Nov 10 21:46:31 2025
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.1.5
+  GitCommit:        fcd43222d6b07379a4be9786bda52438f0dd16a1
+ runc:
+  Version:          1.3.3
+  GitCommit:        v1.3.3-0-gd842d771
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+```
+
+Your **Docker Engine** is now fully installed and configured on your **GCP VM**.
+You’re ready to containerise and deploy the **LLMOps Flipkart Product Recommender**.

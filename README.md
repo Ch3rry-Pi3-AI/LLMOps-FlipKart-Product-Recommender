@@ -1,10 +1,13 @@
-# 🧩 **RAG Chain Construction — LLMOps Flipkart Product Recommender System**
+# 🌐 **Flask Application Deployment — LLMOps Flipkart Product Recommender System**
 
-This stage introduces the **Retrieval-Augmented Generation (RAG)** pipeline for the **LLMOps Flipkart Product Recommender System**.
-It builds upon the previously completed data ingestion layer by integrating a **Groq-powered conversational model** with the **AstraDB vector store**, enabling **context-aware product reasoning and dialogue continuity**.
+This stage transforms the **RAG reasoning pipeline** of the **LLMOps Flipkart Product Recommender System** into an **interactive web application** using **Flask**.
 
-The newly added module — `rag_chain.py` — defines a history-aware RAG chain capable of retrieving relevant product reviews and generating **concise, grounded responses** based on prior user interactions.
+It introduces a lightweight **front-end chat interface** that allows users to engage with the model conversationally, sending product-related queries and receiving grounded recommendations through the RAG pipeline.
 
+The Flask layer wraps the existing backend components — `DataIngestor` and `RAGChainBuilder` — and exposes them via simple HTTP endpoints.
+In addition, it integrates **Prometheus metrics** for observability, enabling fine-grained tracking of user requests and RAG activity.
+
+<p align="center"> <img src="img/flask/flask_app.gif" alt="Flask Chat Application Demo" style="width:100%; height:auto;"> </p>
 
 ## 🗂️ **Project Structure (Updated)**
 
@@ -20,15 +23,18 @@ llmops-flipkart-product-recommender/
 │   ├── config.py
 │   ├── data_converter.py
 │   ├── data_ingestion.py
-│   └── rag_chain.py             # 🧩 Builds history-aware RAG chain (new)
+│   └── rag_chain.py
 ├── grafana/
 ├── prometheus/
 ├── static/
+│   └── style.css                 # 🎨 Defines dark, frosted-glass chat styling and layout
 ├── templates/
+│   └── index.html                # 💬 Front-end chatbot UI rendered by Flask
 ├── utils/
 │   ├── __init__.py
 │   ├── custom_exception.py
 │   └── logger.py
+├── app.py                        # 🚀 Flask app exposing RAG endpoint and Prometheus metrics
 ├── main.py
 ├── pyproject.toml
 ├── requirements.txt
@@ -37,55 +43,91 @@ llmops-flipkart-product-recommender/
 └── README.md
 ```
 
-## ⚙️ **Overview of the RAG Chain Component**
 
-### **`flipkart/rag_chain.py`**
 
-This module defines the **`RAGChainBuilder`** class — a composable, history-aware RAG pipeline built using **LangChain Core Runnable Expressions (LCEL)**.
-It tightly integrates the previously established AstraDB vector store with a **Groq chat model**, allowing for conversational product queries that reference relevant reviews and maintain session memory.
+## ⚙️ **Overview of the Flask Application Layer**
 
-The RAG chain performs three key functions:
+### **`app.py`**
 
-1. **Question Rewriting** – reformulates user queries using chat history for better retrieval context.
-2. **Context Retrieval** – fetches the most relevant product reviews from AstraDB.
-3. **Grounded Response Generation** – produces concise, contextually accurate answers using Groq’s LLM.
+This script serves as the **entry point** for the web application.
+It creates and configures a Flask server that connects the RAG backend to an interactive front-end interface.
 
-## 🧩 **Example Usage**
+Key components:
 
-```python
-from flipkart.data_ingestion import DataIngestor
-from flipkart.rag_chain import RAGChainBuilder
+* **Flask routes**
 
-# Step 1: Load or create the AstraDB vector store
-vstore = DataIngestor().ingest(load_existing=True)
+  * `/` – renders the chatbot interface (`index.html`)
+  * `/get` – handles POST requests from the chat UI, invokes the RAG chain, and returns model responses
+  * `/metrics` – exposes Prometheus metrics for monitoring request volume and system activity
+  * `/health` – returns a simple JSON health check
+* **Integration with RAG Chain**
+  The app initialises `DataIngestor` and `RAGChainBuilder` once on startup for efficient, low-latency inference.
+* **Prometheus Counters**
+  Tracks both total HTTP requests and RAG-specific queries in real time.
 
-# Step 2: Build the RAG chain
-rag_builder = RAGChainBuilder(vstore)
-rag_chain = rag_builder.build_chain()
 
-# Step 3: Invoke the RAG chain with session tracking
-response = rag_chain.invoke(
-    {"input": "Which phone has the best battery life?", "chat_history": []},
-    config={"configurable": {"session_id": "user123"}}
-)
 
-print(response)
-```
+### **`templates/index.html`**
 
-### Example Output
+This file defines the **chat interface** for user interaction.
+It combines Bootstrap, Font Awesome, and jQuery to provide a dynamic, responsive user experience.
 
-```
-Based on customer reviews, the XYZ Pro Max is praised for its long-lasting battery life,
-often lasting more than a day under heavy use.
-```
+Features:
+
+* A **dark-themed chat window** with frosted-glass transparency
+* Smooth **auto-scroll** to the latest message
+* Live **AJAX-based message exchange** with the Flask backend
+* Integrated timestamps for both user and model messages
+
+The front-end connects to `/get` via AJAX, passing the user’s query and displaying the model’s response without reloading the page.
+
+
+
+### **`static/style.css`**
+
+This stylesheet provides the **visual foundation** of the chatbot interface.
+
+Highlights:
+
+* Implements a **modern, dark UI** with blurred-glass panels
+* Styles message bubbles for user and model exchanges
+* Customises scrollbars, timestamps, and message layout
+* Ensures full responsiveness across devices
+
+The CSS complements the Bootstrap structure in `index.html`, keeping design logic separate from layout.
+
+
+
+## 🧩 **How It All Fits Together**
+
+1. The user enters a query into the chatbox on the `/` page.
+2. The front-end script sends this query via AJAX to the Flask `/get` endpoint.
+3. The backend processes the query using the RAG chain (`rag_chain.py`) and retrieves relevant product reviews.
+4. The model generates a **contextually grounded** answer, which is returned to the browser and displayed instantly.
+5. Each interaction increments the Prometheus counters, which can be visualised in Grafana dashboards.
+
+
+
+## 💬 **Example Interaction**
+
+**User:**
+
+> Which laptop has the best battery life for travel?
+
+**Model Response:**
+
+> Based on customer reviews, the Lenovo ThinkBook X1 Carbon offers excellent battery life, often lasting 14–16 hours on moderate use.
+
+
 
 ## ✅ **In Summary**
 
-This stage completes the **intelligent reasoning layer** of the Flipkart Product Recommender:
+This stage delivers the **interactive application layer** of the Flipkart Product Recommender System:
 
-* Introduces `rag_chain.py` — a **Groq-integrated RAG pipeline** with conversational memory.
-* Connects to the **AstraDB vector store** for context retrieval.
-* Implements **question rewriting**, **retrieval**, and **response generation** within a unified LCEL framework.
-* Enables **context-aware, human-like product interactions**.
+* Introduces `app.py` — a **Flask-powered RAG API and chat interface**
+* Adds `index.html` — a **responsive, dark-themed chatbot front-end**
+* Includes `style.css` — a **dedicated stylesheet** defining layout and visual polish
+* Integrates **Prometheus metrics** for system observability
+* Enables **real-time, conversational product recommendations** through the browser
 
-The **RAG chain construction stage** now bridges your data and model layers, paving the way for the **interactive recommendation interface** in the next phase.
+The **Flask application stage** transforms the backend intelligence into a **user-accessible, monitored web experience**, completing the operational front-end of your LLMOps pipeline.

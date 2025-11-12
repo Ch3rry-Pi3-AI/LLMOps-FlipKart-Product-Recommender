@@ -1,13 +1,14 @@
-# 🌐 **Flask Application Deployment — LLMOps Flipkart Product Recommender System**
+# 🐳 **Containerisation and Kubernetes Deployment — LLMOps Flipkart Product Recommender System**
 
-This stage transforms the **RAG reasoning pipeline** of the **LLMOps Flipkart Product Recommender System** into an **interactive web application** using **Flask**.
+This stage packages the **Flask-based RAG application** of the **LLMOps Flipkart Product Recommender System** into a **Docker container** and deploys it on a **Kubernetes cluster**.
 
-It introduces a lightweight **front-end chat interface** that allows users to engage with the model conversationally, sending product-related queries and receiving grounded recommendations through the RAG pipeline.
+By containerising the application, this stage ensures **portability, reproducibility, and scalability** across environments.
+The Kubernetes manifest then defines how the container is deployed, networked, and monitored within the cluster — forming the foundation of a production-ready **MLOps deployment pipeline**.
 
-The Flask layer wraps the existing backend components — `DataIngestor` and `RAGChainBuilder` — and exposes them via simple HTTP endpoints.
-In addition, it integrates **Prometheus metrics** for observability, enabling fine-grained tracking of user requests and RAG activity.
+<p align="center">
+  <img src="img/flask/flask_app.gif" alt="Deployed Flask Application Overview" style="width:100%; height:auto;">
+</p>
 
-<p align="center"> <img src="img/flask/flask_app.gif" alt="Flask Chat Application Demo" style="width:100%; height:auto;"> </p>
 
 ## 🗂️ **Project Structure (Updated)**
 
@@ -26,15 +27,20 @@ llmops-flipkart-product-recommender/
 │   └── rag_chain.py
 ├── grafana/
 ├── prometheus/
+├── img/
+│   └── flask/
+│       └── flask_app.gif
 ├── static/
-│   └── style.css                 # 🎨 Defines dark, frosted-glass chat styling and layout
+│   └── style.css
 ├── templates/
-│   └── index.html                # 💬 Front-end chatbot UI rendered by Flask
+│   └── index.html
 ├── utils/
 │   ├── __init__.py
 │   ├── custom_exception.py
 │   └── logger.py
-├── app.py                        # 🚀 Flask app exposing RAG endpoint and Prometheus metrics
+├── app.py
+├── Dockerfile                      # 🐳 Defines container image for Flask RAG application
+├── flask-deployment.yaml           # ☸️ Kubernetes manifest for cluster deployment
 ├── main.py
 ├── pyproject.toml
 ├── requirements.txt
@@ -43,91 +49,74 @@ llmops-flipkart-product-recommender/
 └── README.md
 ```
 
+## ⚙️ **Overview of the Containerisation and Deployment Layer**
 
+### **`Dockerfile`**
 
-## ⚙️ **Overview of the Flask Application Layer**
+The `Dockerfile` defines the **container image** for the Flask application.
+It ensures a clean, reproducible environment with all dependencies, environment variables, and entrypoints configured.
 
-### **`app.py`**
+Key steps include:
 
-This script serves as the **entry point** for the web application.
-It creates and configures a Flask server that connects the RAG backend to an interactive front-end interface.
+1. **Base Image**
+   Uses an official lightweight Python base (e.g., `python:3.12-slim`) for a minimal runtime footprint.
+2. **Dependency Installation**
+   Copies `requirements.txt` and installs dependencies in a virtual environment.
+3. **Environment Setup**
+   Copies application files, loads environment variables, and sets working directory to `/app`.
+4. **Port Exposure**
+   Exposes port `5000`, matching the Flask service port.
+5. **Startup Command**
+   Launches the application via:
 
-Key components:
+   ```dockerfile
+   CMD ["python", "app.py"]
+   ```
 
-* **Flask routes**
+This container image can be built locally or in CI/CD pipelines and pushed to a registry such as **Google Artifact Registry**, **Docker Hub**, or **GitHub Packages** for deployment.
 
-  * `/` – renders the chatbot interface (`index.html`)
-  * `/get` – handles POST requests from the chat UI, invokes the RAG chain, and returns model responses
-  * `/metrics` – exposes Prometheus metrics for monitoring request volume and system activity
-  * `/health` – returns a simple JSON health check
-* **Integration with RAG Chain**
-  The app initialises `DataIngestor` and `RAGChainBuilder` once on startup for efficient, low-latency inference.
-* **Prometheus Counters**
-  Tracks both total HTTP requests and RAG-specific queries in real time.
+### **`flask-deployment.yaml`**
 
+This manifest defines the **Kubernetes resources** required to deploy the Flask container in a cluster.
 
+It automates the deployment, scaling, and service exposure of the RAG-powered chatbot.
 
-### **`templates/index.html`**
+Key sections:
 
-This file defines the **chat interface** for user interaction.
-It combines Bootstrap, Font Awesome, and jQuery to provide a dynamic, responsive user experience.
+* **Deployment**
 
-Features:
+  * Creates and manages Pods running the Flask container.
+  * Specifies the container image and tag (e.g., `flask-llmops:latest`).
+  * Defines resource requests and limits for stable operation.
+  * Uses multiple replicas for high availability.
+* **Service**
 
-* A **dark-themed chat window** with frosted-glass transparency
-* Smooth **auto-scroll** to the latest message
-* Live **AJAX-based message exchange** with the Flask backend
-* Integrated timestamps for both user and model messages
+  * Exposes the Flask Pods internally or externally depending on the chosen type:
 
-The front-end connects to `/get` via AJAX, passing the user’s query and displaying the model’s response without reloading the page.
+    ```yaml
+    type: LoadBalancer
+    ports:
+      - port: 80
+        targetPort: 5000
+    ```
+  * Routes incoming traffic to the Flask app.
+* **Labels and Selectors**
 
+  * Labels Pods with `app: llmops-flipkart-flask` for easy monitoring and routing.
+* **Health Probes (Optional)**
 
+  * Liveness and readiness probes hit `/health` to ensure Pods are running properly before serving traffic.
 
-### **`static/style.css`**
-
-This stylesheet provides the **visual foundation** of the chatbot interface.
-
-Highlights:
-
-* Implements a **modern, dark UI** with blurred-glass panels
-* Styles message bubbles for user and model exchanges
-* Customises scrollbars, timestamps, and message layout
-* Ensures full responsiveness across devices
-
-The CSS complements the Bootstrap structure in `index.html`, keeping design logic separate from layout.
-
-
-
-## 🧩 **How It All Fits Together**
-
-1. The user enters a query into the chatbox on the `/` page.
-2. The front-end script sends this query via AJAX to the Flask `/get` endpoint.
-3. The backend processes the query using the RAG chain (`rag_chain.py`) and retrieves relevant product reviews.
-4. The model generates a **contextually grounded** answer, which is returned to the browser and displayed instantly.
-5. Each interaction increments the Prometheus counters, which can be visualised in Grafana dashboards.
-
-
-
-## 💬 **Example Interaction**
-
-**User:**
-
-> Which laptop has the best battery life for travel?
-
-**Model Response:**
-
-> Based on customer reviews, the Lenovo ThinkBook X1 Carbon offers excellent battery life, often lasting 14–16 hours on moderate use.
-
-
+Together, the Deployment and Service definitions automate the process of rolling out updates, ensuring uptime, and providing cluster-level observability.
 
 ## ✅ **In Summary**
 
-This stage delivers the **interactive application layer** of the Flipkart Product Recommender System:
+This stage delivers the **containerisation and orchestration layer** of the Flipkart Product Recommender System:
 
-* Introduces `app.py` — a **Flask-powered RAG API and chat interface**
-* Adds `index.html` — a **responsive, dark-themed chatbot front-end**
-* Includes `style.css` — a **dedicated stylesheet** defining layout and visual polish
-* Integrates **Prometheus metrics** for system observability
-* Enables **real-time, conversational product recommendations** through the browser
+* Introduces `Dockerfile` — a **reproducible container image definition** for the Flask-based RAG application
+* Adds `flask-deployment.yaml` — a **Kubernetes manifest** for scalable deployment and load-balanced access
+* Supports **Prometheus metrics integration** for cluster monitoring
+* Enables **rapid deployment** to both local and cloud Kubernetes environments
+* Establishes the foundation for **CI/CD automation and cloud-native scaling**
 
-The **Flask application stage** transforms the backend intelligence into a **user-accessible, monitored web experience**, completing the operational front-end of your LLMOps pipeline.
+The **containerisation and Kubernetes deployment stage** marks the transition from development to **operational MLOps infrastructure**, enabling scalable, monitored, and portable deployments of your intelligent recommender system.

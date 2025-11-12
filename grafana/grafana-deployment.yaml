@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------
+# 📉 Grafana Deployment and Service
+# ---------------------------------------------------------------------
+# This manifest deploys Grafana in the "monitoring" namespace.
+# Grafana provides dashboards for visualising metrics collected
+# from Prometheus. It is exposed through NodePort 32000.
+# ---------------------------------------------------------------------
+
+# --------------------------------------------------------------
+# 🧩 Grafana Deployment
+# --------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana
+          ports:
+            - containerPort: 3000
+
+---
+# --------------------------------------------------------------
+# 🌐 Grafana Service
+# --------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: monitoring
+spec:
+  selector:
+    app: grafana
+  ports:
+    - protocol: TCP
+      port: 3000          # External access port
+      targetPort: 3000    # Grafana container port
+      nodePort: 32000     # NodePort for external access
+  type: NodePort

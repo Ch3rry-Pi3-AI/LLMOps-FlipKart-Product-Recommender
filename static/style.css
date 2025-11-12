@@ -1,172 +1,243 @@
-body, html {
-    height: 100%;
-    margin: 0;
-    background: linear-gradient(to right, #1e1e2f, #222b3a);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #f1f1f1;
+/*
+===============================================================================
+STYLE SHEET — Flipkart Chatbot Interface
+-------------------------------------------------------------------------------
+This CSS file defines the visual layout, background, and behaviour of the chat
+window in the Flask + RAG chatbot application.
+
+Sections:
+1. Global page styling & background overlay
+2. Chat container sizing & layout
+3. Header (bot avatar, name, status)
+4. Message body (scroll area)
+5. Footer (input box & send button)
+6. Message bubble styling (bot vs user)
+7. Scrollbar customisation
+8. Responsive tweaks
+===============================================================================
+*/
+
+
+/* ---------------------------------------------------------------------------
+1. GLOBAL PAGE STYLING 
+--------------------------------------------------------------------------- */
+
+/* Full-viewport dark base and font defaults */
+html,
+body {
+  height: 100%;
+  background: #0b0f14;
+  color: #e6e9ee;
+  overflow: hidden; /* Disable page scroll — only chat window scrolls */
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
 }
 
-.chat {
-    margin: auto;
+
+
+/* ---------------------------------------------------------------------------
+2. CHAT CONTAINER SIZING & LAYOUT
+--------------------------------------------------------------------------- */
+
+/* Main chat card container:
+   - Semi-transparent "frosted glass" panel
+   - Rounded corners
+   - Taller height (85% of viewport)
+   - Flex column layout for header/body/footer stacking */
+.chat .chat-card {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(17, 23, 31, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 18px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.card {
-    height: 500px;
-    border-radius: 15px;
-    background-color: #2c2f36;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    border: none;
+
+
+/* ---------------------------------------------------------------------------
+3. HEADER (BOT AVATAR, NAME, STATUS)
+--------------------------------------------------------------------------- */
+
+.msg_head {
+  background: linear-gradient(135deg, #141c27, #0f1621);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #e6e9ee;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
 }
 
-.card-header,
-.card-footer {
-    background-color: #003366;
-    border: none;
-    padding: 1rem;
-    color: white;
-}
-
-.card-header .user_info span {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #ffffff;
-}
-
-.card-header .user_info p {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.75);
-}
-
-.msg_card_body {
-    overflow-y: auto;
-    padding: 1rem;
-    background-color: #1c1e25;
-}
-
-.input-group {
-    display: flex;
-    width: 100%;
-}
-
-.type_msg {
-    background-color: #3b3f47;
-    border: none;
-    color: #ffffff !important;  /* Ensures visible text */
-    height: 50px;
-    padding: 12px;
-    border-radius: 10px 0 0 10px;
-    caret-color: #ffb900;  /* Optional: yellow cursor */
-}
-
-.type_msg::placeholder {
-    color: #aaaaaa;  /* Lighter grey for placeholder text */
-    opacity: 1;
-}
-
-.type_msg:focus {
-    outline: none;
-    background-color: #4a4e57;
-}
-
-.send_btn {
-    background-color: #ffb900;
-    color: #1c1c1c;
-    border: none;
-    padding: 0 20px;
-    border-radius: 0 10px 10px 0;
-    cursor: pointer;
-    transition: 0.3s ease;
-    font-weight: bold;
-}
-
-.send_btn:hover {
-    background-color: #f6a400;
-}
-
-.user_img,
-.user_img_msg {
-    height: 45px;
-    width: 45px;
-    border-radius: 50%;
-    border: 2px solid #fff;
-    object-fit: cover;
-}
-
+/* Bot avatar container */
 .img_cont {
-    position: relative;
-    margin-right: 10px;
+  position: relative;
+  height: 48px;
+  width: 48px;
+  margin-right: 12px;
 }
 
+.user_img {
+  height: 48px;
+  width: 48px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+}
+
+/* Small green status dot (bottom-right corner of bot avatar) */
 .online_icon {
-    position: absolute;
-    height: 12px;
-    width: 12px;
-    background-color: #28a745;
-    border-radius: 50%;
-    bottom: 0;
-    right: 0;
-    border: 2px solid white;
+  position: absolute;
+  height: 12px;
+  width: 12px;
+  background: #2ecc71;
+  border-radius: 50%;
+  bottom: 2px;
+  right: 2px;
+  border: 2px solid #0f1621;
 }
 
-.user_info {
-    margin-left: 10px;
+/* Bot name and subtitle text */
+.user_info .chat-title {
+  display: block;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.2px;
 }
 
+.user_info .chat-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #aab4bf;
+}
+
+
+
+/* ---------------------------------------------------------------------------
+4. MESSAGE BODY (SCROLL AREA)
+--------------------------------------------------------------------------- */
+
+/* 
+Scrollable area containing all messages.
+ - Flexible height (fills remaining card space)
+ - Smooth custom scrollbar
+*/
+.msg_card_body {
+  padding: 1rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  scrollbar-width: thin;
+  scrollbar-color: #2a3340 transparent;
+}
+
+/* WebKit (Chrome/Safari) scrollbar styling */
+.msg_card_body::-webkit-scrollbar {
+  width: 10px;
+}
+.msg_card_body::-webkit-scrollbar-thumb {
+  background: #2a3340;
+  border-radius: 8px;
+}
+
+
+
+/* ---------------------------------------------------------------------------
+5. FOOTER (INPUT BOX & SEND BUTTON)
+--------------------------------------------------------------------------- */
+
+.card-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(17, 23, 31, 0.7);
+}
+
+/* Text input field */
+.type_msg {
+  background: rgba(10, 14, 20, 0.6);
+  color: #e6e9ee;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 0;
+  padding: 0.8rem 1rem;
+}
+.type_msg::placeholder {
+  color: #94a2b3;
+}
+
+/* Send button (paper plane icon) */
+.send_btn {
+  background: #1e88e5;
+  color: #fff;
+  border: 1px solid #1e88e5;
+  transition: transform 0.05s ease, filter 0.2s ease;
+}
+.send_btn:hover {
+  filter: brightness(1.05);
+}
+.send_btn:active {
+  transform: translateY(1px);
+}
+
+
+
+/* ---------------------------------------------------------------------------
+6. MESSAGE BUBBLE STYLING (BOT VS USER)
+--------------------------------------------------------------------------- */
+
+/* Common properties for both sender and receiver messages */
 .msg_cotainer,
 .msg_cotainer_send {
-    max-width: 70%;
-    padding: 12px 16px;
-    border-radius: 20px;
-    position: relative;
-    word-wrap: break-word;
-    font-size: 0.95rem;
-    line-height: 1.4;
+  max-width: min(75%, 720px);
+  padding: 0.7rem 0.9rem;
+  border-radius: 14px;
+  position: relative;
+  font-size: 0.96rem;
+  line-height: 1.35rem;
+  word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
+/* Bot message bubble */
 .msg_cotainer {
-    background-color: #0056b3;
-    color: #ffffff;
-    margin-left: 10px;
+  background: rgba(30, 136, 229, 0.15);
+  color: #dbe6f3;
+  border: 1px solid rgba(30, 136, 229, 0.35);
 }
 
+/* User message bubble */
 .msg_cotainer_send {
-    background-color: #2e7d32;
-    color: #ffffff;
-    margin-right: 10px;
-    margin-left: auto;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3f5f8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Message avatars (smaller than header avatar) */
+.user_img_msg {
+  height: 36px;
+  width: 36px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+}
+
+/* Message timestamps (bottom-right corner of bubble) */
 .msg_time,
 .msg_time_send {
-    font-size: 0.75rem;
-    position: absolute;
-    bottom: -18px;
-    color: #bbb;
+  position: absolute;
+  bottom: -18px;
+  right: 6px;
+  font-size: 0.72rem;
+  color: #9aabbf;
 }
 
-.msg_time {
-    left: 0;
-}
 
-.msg_time_send {
-    right: 0;
-}
 
+/* ---------------------------------------------------------------------------
+7. RESPONSIVE TWEAKS
+--------------------------------------------------------------------------- */
+
+/* On small screens, slightly reduce bubble width and font size */
 @media (max-width: 576px) {
-    .card {
-        height: 100vh;
-        border-radius: 0;
-    }
-
-    .msg_cotainer,
-    .msg_cotainer_send {
-        max-width: 85%;
-        font-size: 0.9rem;
-    }
-
-    .user_img,
-    .user_img_msg {
-        height: 35px;
-        width: 35px;
-    }
+  .msg_cotainer,
+  .msg_cotainer_send {
+    max-width: 88%;
+    font-size: 0.95rem;
+  }
 }

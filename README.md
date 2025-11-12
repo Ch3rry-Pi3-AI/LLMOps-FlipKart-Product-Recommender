@@ -1,160 +1,108 @@
-# ☁️ **GCP Virtual Machine Setup — LLMOps Flipkart Product Recommender**
+# ☸️ **Minikube and kubectl Setup — LLMOps Anime Recommender System**
 
-In this stage, we deploy our environment to **Google Cloud Platform (GCP)** using a **Compute Engine Virtual Machine (VM)** and install the **Docker Engine**.
-This setup provides a reliable cloud-based environment for building, testing, and running the **LLMOps Flipkart Product Recommender** inside containers.
+In this stage, we install and configure **Minikube** and **kubectl** on our **Google Cloud Platform (GCP) Virtual Machine**.
+These tools allow us to create and manage a **local Kubernetes cluster** within the VM, which will later be used to deploy and orchestrate the **LLMOps Anime Recommender System**.
 
-## 🧭 **Step 1 — Launch a GCP VM**
+## 🧭 **Step 1 — Install Minikube**
 
-1. Log into or sign up for [**Google Cloud Platform**](https://cloud.google.com/).
-2. Search for **Compute Engine** in the GCP console and go to **VM instances**.
-3. Click **+ Create instance**.
+Go to the official Minikube documentation:
+👉 [https://minikube.sigs.k8s.io/docs/start/](https://minikube.sigs.k8s.io/docs/start/)
 
-### Machine Configuration
-
-Keep all defaults **except** for the *Machine type*.
-Change it to:
-
-```
-e2-standard-4 (4 vCPU, 2 core, 16 GB memory)
-```
-
-in the **Standard** tab.
-
-### OS and Storage
-
-Under **OS and storage**, click **Change** and select the options shown below:
-
-<p align="center">
-  <img src="img/vm_setup/change_os.png" alt="Change OS Settings in GCP" width="80%">
-</p>
-
-### Networking
-
-Under **Networking → Firewall**, check the following boxes:
-
-* ✅ Allow HTTP traffic
-* ✅ Allow HTTPS traffic
-* ✅ Allow Load Balancer Health Checks
-
-Also **enable IP forwarding**.
-
-Now click **Create** to launch your instance.
-
-When the instance is ready, click **SSH** under *Connect* to open an SSH-in-browser terminal.
-
-## ⚙️ **Step 2 — Install Docker Engine**
-
-Go to the official Docker documentation:
-👉 [https://docs.docker.com/engine/install/ubuntu/](https://docs.docker.com/engine/install/ubuntu/)
-
-Scroll down to **“Install using the apt repository”** and copy the code under **1. Set up Docker’s apt repository.**
-Paste the following into your VM terminal:
+Select **Linux** as the operating system, then copy and paste the first installation command into your VM terminal:
 
 ```bash
-# Add Docker's official GPG key:
-sudo apt-get update
-sudo apt-get install ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
+curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
 ```
 
-Then scroll to **2. Install the Docker packages** and run only the first command:
+You should see output similar to this:
+
+```
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+100  133M  100  133M    0     0   132M      0  0:00:01  0:00:01 --:--:--  132M
+```
+
+Now install Minikube and remove the downloaded file:
 
 ```bash
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
 ```
 
-To verify the installation, run:
+Once installed, start your Minikube cluster:
 
 ```bash
-sudo docker run hello-world
-```
-
-You should see a message beginning with:
-
-```
-Hello from Docker!
-This message shows that your installation appears to be working correctly.
-```
-
-## 🧪 **Step 3 — Enable Docker for Your User**
-
-Next, go to:
-👉 [https://docs.docker.com/engine/install/linux-postinstall/](https://docs.docker.com/engine/install/linux-postinstall/)
-
-Copy and paste the following commands into your terminal:
-
-```bash
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker
-docker run hello-world
-```
-
-This allows you to run Docker without needing `sudo`.
-
-Now scroll further down the same page to **“Configure Docker to start on boot with systemd.”**
-Run the following commands:
-
-```bash
-sudo systemctl enable docker.service
-sudo systemctl enable containerd.service
-```
-
-You should see output like:
-
-```
-Synchronizing state of docker.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
-Executing: /usr/lib/systemd/systemd-sysv-install enable docker
-```
-
-## ✅ **Step 4 — Confirm Installation**
-
-Finally, confirm the installation by checking the version:
-
-```bash
-docker version
+minikube start
 ```
 
 You should see output similar to the following:
 
 ```
-Client: Docker Engine - Community
- Version:           29.0.0
- API version:       1.52
- Go version:        go1.25.4
- Git commit:        3d4129b
- Built:             Mon Nov 10 21:46:31 2025
- OS/Arch:           linux/amd64
- Context:           default
-
-Server: Docker Engine - Community
- Engine:
-  Version:          29.0.0
-  API version:      1.52 (minimum version 1.44)
-  Go version:       go1.25.4
-  Git commit:       d105562
-  Built:            Mon Nov 10 21:46:31 2025
-  OS/Arch:          linux/amd64
-  Experimental:     false
- containerd:
-  Version:          v2.1.5
-  GitCommit:        fcd43222d6b07379a4be9786bda52438f0dd16a1
- runc:
-  Version:          1.3.3
-  GitCommit:        v1.3.3-0-gd842d771
- docker-init:
-  Version:          0.19.0
-  GitCommit:        de40ad0
+😄  minikube v1.37.0 on Ubuntu 24.04 (amd64)
+✨  Automatically selected the docker driver. Other choices: none, ssh
+📌  Using Docker driver with root privileges
+👍  Starting "minikube" primary control-plane node in "minikube" cluster
+🚜  Pulling base image v0.0.48 ...
+💾  Downloading Kubernetes v1.34.0 preload ...
+    > preloaded-images-k8s-v18-v1...:  337.07 MiB / 337.07 MiB  100.00% 212.84 
+    > gcr.io/k8s-minikube/kicbase...:  488.51 MiB / 488.52 MiB  100.00% 108.37 
+🔥  Creating docker container (CPUs=2, Memory=3900MB) ...
+🐳  Preparing Kubernetes v1.34.0 on Docker 28.4.0 ...
+🔗  Configuring bridge CNI (Container Networking Interface) ...
+🔎  Verifying Kubernetes components...
+    ▪ Using image gcr.io/k8s-minikube/storage-provisioner:v5
+🌟  Enabled addons: storage-provisioner, default-storageclass
+💡  kubectl not found. If you need it, try: 'minikube kubectl -- get pods -A'
+🏄  Done! kubectl is now configured to use "minikube" cluster and "default" namespace by default
 ```
 
-Your **Docker Engine** is now fully installed and configured on your **GCP VM**.
-You’re ready to containerise and deploy the **LLMOps Flipkart Product Recommender**.
+This confirms that your Minikube cluster has been created and is running successfully.
+
+## ⚙️ **Step 2 — Install kubectl**
+
+Now we will install **kubectl**, the command-line tool used to manage Kubernetes clusters.
+
+Go to the official Kubernetes documentation:
+👉 [https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
+
+Scroll down to **“1. Install kubectl binary with curl on Linux”** and copy the following command:
+
+```bash
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+```
+
+You should see output similar to:
+
+```
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   138  100   138    0     0   2486      0 --:--:-- --:--:-- --:--:--  2509
+100 57.7M  100 57.7M    0     0   115M      0 --:--:-- --:--:-- --:--:--  115M
+```
+
+Next, scroll further down to the **“Install using other package management”** section.
+Ensure **“Snap”** is selected, then copy and paste the following commands into your terminal:
+
+```bash
+sudo snap install kubectl --classic
+kubectl version --client
+```
+
+You should see output confirming the installation:
+
+```
+kubectl 1.34.1 from Canonical✓ installed
+Client Version: v1.34.1
+Kustomize Version: v5.7.1
+```
+
+Your **kubectl** installation is now complete and configured to work with the **Minikube** cluster.
+
+## ✅ **In Summary**
+
+You have now successfully:
+
+* Installed **Minikube** and started a local Kubernetes cluster.
+* Installed **kubectl** and verified connectivity to the cluster.
+
+Your GCP VM is now fully configured with **Docker**, **Minikube**, and **kubectl**, enabling you to deploy and manage the **LLMOps Anime Recommender System** in a Kubernetes environment.

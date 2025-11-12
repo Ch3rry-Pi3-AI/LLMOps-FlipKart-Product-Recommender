@@ -1,9 +1,9 @@
-# 🧩 **Data Loading Stage — LLMOps Flipkart Product Recommender System**
+# 🧩 **RAG Chain Construction — LLMOps Flipkart Product Recommender System**
 
-This stage establishes the **data ingestion and preparation layer** for the **LLMOps Flipkart Product Recommender System**.
-It introduces the foundational modules that load, process, and embed Flipkart product reviews into an **AstraDB vector store**, preparing the data for downstream retrieval and recommendation tasks.
+This stage introduces the **Retrieval-Augmented Generation (RAG)** pipeline for the **LLMOps Flipkart Product Recommender System**.
+It builds upon the previously completed data ingestion layer by integrating a **Groq-powered conversational model** with the **AstraDB vector store**, enabling **context-aware product reasoning and dialogue continuity**.
 
-The three new modules created in this stage — `config.py`, `data_converter.py`, and `data_ingestion.py` — enable the system to connect securely to AstraDB, handle raw CSV review data, and populate the vector database with embedded text representations.
+The newly added module — `rag_chain.py` — defines a history-aware RAG chain capable of retrieving relevant product reviews and generating **concise, grounded responses** based on prior user interactions.
 
 
 ## 🗂️ **Project Structure (Updated)**
@@ -17,9 +17,10 @@ llmops-flipkart-product-recommender/
 │   └── flipkart_product_review.csv
 ├── flipkart/
 │   ├── __init__.py
-│   ├── config.py               # ⚙️ Loads env vars + model/DB settings (new)
-│   ├── data_converter.py       # 🔄 CSV → LangChain Documents (new)
-│   └── data_ingestion.py       # 🧠 Embeddings + AstraDB vector store (new)
+│   ├── config.py
+│   ├── data_converter.py
+│   ├── data_ingestion.py
+│   └── rag_chain.py             # 🧩 Builds history-aware RAG chain (new)
 ├── grafana/
 ├── prometheus/
 ├── static/
@@ -36,57 +37,55 @@ llmops-flipkart-product-recommender/
 └── README.md
 ```
 
+## ⚙️ **Overview of the RAG Chain Component**
 
-## ⚙️ **Overview of the Data Loading Components**
+### **`flipkart/rag_chain.py`**
 
-This update introduces the three key modules that together form the **data loading pipeline**:
+This module defines the **`RAGChainBuilder`** class — a composable, history-aware RAG pipeline built using **LangChain Core Runnable Expressions (LCEL)**.
+It tightly integrates the previously established AstraDB vector store with a **Groq chat model**, allowing for conversational product queries that reference relevant reviews and maintain session memory.
 
-### 1. `flipkart/config.py`
+The RAG chain performs three key functions:
 
-Defines and loads all environment variables required for connecting to AstraDB and Hugging Face services.
-It centralises key configuration settings such as API tokens, model identifiers, and database endpoints, keeping credentials safely stored in the `.env` file.
-
-### 2. `flipkart/data_converter.py`
-
-Handles reading the Flipkart review dataset from CSV format, removing missing entries, and converting each row into a **LangChain `Document`**.
-Each document stores the review text as its content and the product title as metadata — ideal for embedding and later retrieval.
-
-### 3. `flipkart/data_ingestion.py`
-
-Initialises the **Hugging Face embedding model** and the **AstraDB vector store** using the configuration parameters.
-It can either load an existing vector store or ingest new review documents by embedding and uploading them into the AstraDB collection.
-
+1. **Question Rewriting** – reformulates user queries using chat history for better retrieval context.
+2. **Context Retrieval** – fetches the most relevant product reviews from AstraDB.
+3. **Grounded Response Generation** – produces concise, contextually accurate answers using Groq’s LLM.
 
 ## 🧩 **Example Usage**
 
 ```python
 from flipkart.data_ingestion import DataIngestor
+from flipkart.rag_chain import RAGChainBuilder
 
-# Initialise the ingestion process
-ingestor = DataIngestor()
+# Step 1: Load or create the AstraDB vector store
+vstore = DataIngestor().ingest(load_existing=True)
 
-# Option 1: Load existing AstraDB vector store
-vstore = ingestor.ingest(load_existing=True)
+# Step 2: Build the RAG chain
+rag_builder = RAGChainBuilder(vstore)
+rag_chain = rag_builder.build_chain()
 
-# Option 2: Ingest new documents into the store
-# vstore = ingestor.ingest(load_existing=False)
+# Step 3: Invoke the RAG chain with session tracking
+response = rag_chain.invoke(
+    {"input": "Which phone has the best battery life?", "chat_history": []},
+    config={"configurable": {"session_id": "user123"}}
+)
 
-print("Vector store ready:", vstore)
+print(response)
 ```
 
 ### Example Output
 
 ```
-Vector store ready: <AstraDBVectorStore(collection_name='flipkart_database')>
+Based on customer reviews, the XYZ Pro Max is praised for its long-lasting battery life,
+often lasting more than a day under heavy use.
 ```
 
 ## ✅ **In Summary**
 
-This stage lays the groundwork for all subsequent LLM-powered components:
+This stage completes the **intelligent reasoning layer** of the Flipkart Product Recommender:
 
-* Introduces environment-based configuration through `config.py`.
-* Converts raw Flipkart review data into structured `LangChain Document` objects.
-* Builds and populates an **AstraDB vector store** using **Hugging Face embeddings**.
-* Creates a clean, modular entry point for future retrieval and reasoning stages.
+* Introduces `rag_chain.py` — a **Groq-integrated RAG pipeline** with conversational memory.
+* Connects to the **AstraDB vector store** for context retrieval.
+* Implements **question rewriting**, **retrieval**, and **response generation** within a unified LCEL framework.
+* Enables **context-aware, human-like product interactions**.
 
-The **data loading stage** is now complete — paving the way for the **RAG pipeline and recommendation logic** to follow in the next phase.
+The **RAG chain construction stage** now bridges your data and model layers, paving the way for the **interactive recommendation interface** in the next phase.

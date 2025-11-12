@@ -1,139 +1,253 @@
-# 🚀 **Kubernetes Deployment — LLMOps Flipkart Product Recommender**
+# 📊 **Monitoring Setup — LLMOps Flipkart Product Recommender System**
 
-In this stage, we deploy the **LLMOps Flipkart Product Recommender** onto a **Kubernetes cluster** running on our **Minikube setup within a GCP VM**.
-This stage brings the entire project to life — containerising the application and serving it publicly via Kubernetes services.
+This stage introduces **real-time monitoring** for the **LLMOps Flipkart Product Recommender System** using **Prometheus** and **Grafana**.
+Prometheus is responsible for **collecting and scraping metrics**, while Grafana provides a **visual interface** to observe, analyse, and interpret those metrics through dashboards and visualisations.
 
-## 🧭 **Step 1 — Connect Docker to Minikube**
+The following guide walks through setting up a **dedicated monitoring namespace**, deploying both tools within Kubernetes, and connecting Grafana to Prometheus to visualise live application data.
 
-In your VM terminal, run the following command:
+<p align="center">
+  <img src="img/monitoring/grafana_dashboard.png" alt="Grafana Monitoring Dashboard" width="100%">
+</p>
 
-```bash
-eval $(minikube docker-env)
-```
 
-This command ensures Docker points to Minikube’s internal environment so that your image builds directly inside Minikube’s Docker daemon.
 
-Now, build your Docker image:
+## 🧭 **Step-by-Step Setup**
 
-```bash
-docker build -t flask-app:latest .
-```
+### 1️⃣ Create a Namespace for Monitoring
 
-This may take a few minutes to complete, as it will install all dependencies and package your Streamlit app into a container.
-
-Once complete, verify that your image was successfully built:
+Open a **new VM terminal** and create a namespace dedicated to monitoring:
 
 ```bash
-docker images
+kubectl create ns monitoring
 ```
 
-You should see output similar to:
+**Expected output:**
 
 ```
-IMAGE                                             ID             DISK USAGE   
-gcr.io/k8s-minikube/storage-provisioner:v5        6e38f40d628d       31.5MB      
-flask-app:latest                                  bd292243bb00        964MB      
-registry.k8s.io/coredns/coredns:v1.12.1           52546a367cc9         75MB      
-registry.k8s.io/etcd:3.6.4-0                      5f1f5298c888        195MB      
-registry.k8s.io/kube-apiserver:v1.34.0            90550c43ad2b         88MB      
-registry.k8s.io/kube-controller-manager:v1.34.0   a0af72f2ec6d       74.9MB      
-registry.k8s.io/kube-proxy:v1.34.0                df0860106674       71.9MB      
-registry.k8s.io/kube-scheduler:v1.34.0            46169d968e92       52.8MB      
-registry.k8s.io/pause:3.10.1                      cd073f4c5f6a        736kB 
+namespace/monitoring created
 ```
 
-Your `flask-app:latest` image is now built and ready to deploy.
-
-## 🔐 **Step 2 — Inject Secrets into Kubernetes**
-
-Next, we need to securely inject your **Groq** and **Hugging Face API keys** into the Kubernetes environment.
-
-Run the following command:
+Verify that the namespace has been created successfully:
 
 ```bash
-kubectl create secret generic llmops-secrets \
-  --from-literal=GROQ_API_KEY="" \
-  --from-literal=ASTRA_DB_APPLICATION_TOKEN="" \
-  --from-literal=ASTRA_DB_KEYSPACE="default_keyspace" \
-  --from-literal=ASTRA_DB_API_ENDPOINT="" \
-  --from-literal=HF_TOKEN="" \
-  --from-literal=HUGGINGFACEHUB_API_TOKEN=""
+kubectl get ns
 ```
 
-Make sure to replace the empty quotation marks `""` with your actual API keys.
-
-You should see confirmation:
+**Expected output:**
 
 ```
-secret/llmops-secrets created
+NAME              STATUS   AGE
+default           Active   99m
+kube-node-lease   Active   99m
+kube-public       Active   99m
+kube-system       Active   99m
+monitoring        Active   43s
 ```
 
-## 🧩 **Step 3 — Deploy the Application**
 
-Now apply your Kubernetes deployment and service configuration:
+
+### 2️⃣ Deploy Prometheus
+
+Apply the Prometheus configuration file:
 
 ```bash
-kubectl apply -f flask-deployment.yaml
+kubectl apply -f prometheus/prometheus-configmap.yaml
 ```
 
-Expected output:
+**Output:**
 
 ```
-deployment.apps/flask-app created
-service/flask-service created
+configmap/prometheus-config created
 ```
 
-You can verify the pods are running with:
+Now deploy Prometheus using the deployment file:
 
 ```bash
-kubectl get pods
+kubectl apply -f prometheus/prometheus-deployment.yaml
 ```
 
-Example output:
+**Output:**
+
+```
+deployment.apps/prometheus created
+service/prometheus-service created
+```
+
+Verify that the Prometheus pod is running:
+
+```bash
+kubectl get pods -n monitoring
+```
+
+**Output:**
 
 ```
 NAME                         READY   STATUS    RESTARTS   AGE
-flask-app-58b5995844-66kth   1/1     Running   0          32s
+prometheus-6f7fcfdd4-tmt99   1/1     Running   0          45s
 ```
 
-This confirms that your container is up and running successfully inside the cluster.
 
-## 💻 **Step 4 — Forward Ports and Access the App**
 
-In your terminal, run:
+### 3️⃣ Deploy Grafana
+
+Deploy Grafana next:
 
 ```bash
-kubectl port-forward svc/llmops-service 5000:80 --address 0.0.0.0
+kubectl apply -f grafana/grafana-deployment.yaml
 ```
 
-This forwards external traffic from port **5000** to your Flask app inside Kubernetes.
-
-Keep this terminal open while your application is running.
-
-Now, return to your **GCP Console → VM Instances** page, find your **External IP address**, and click **Copy**.
-In your browser, visit:
+**Output:**
 
 ```
-http://<YOUR_EXTERNAL_IP>:5000
+deployment.apps/grafana created
+service/grafana-service created
 ```
 
-For example:
+Verify both services are running:
+
+```bash
+kubectl get pods -n monitoring
+```
+
+**Output:**
 
 ```
-http://136.114.199.97:5000
+NAME                         READY   STATUS    RESTARTS   AGE
+grafana-6444d486c-dr6gh      1/1     Running   0          116s
+prometheus-6f7fcfdd4-tmt99   1/1     Running   0          5m36s
 ```
 
-*(Note: do not use `https://` — it may cause connection issues in some environments.)*
 
-If everything is configured correctly, your **LLMOps Flipkart Product Recommender** web app will load in your browser and be fully interactive!
 
-## ✅ **In Summary**
+### 4️⃣ Access Prometheus Externally
 
-You have now successfully:
+Port-forward the Prometheus service:
 
-* Built and containerised your application using **Docker**.
-* Deployed it on **Kubernetes** via **Minikube**.
-* Injected API secrets into the cluster securely.
-* Exposed the service externally using **port forwarding**.
+```bash
+kubectl port-forward --address 0.0.0.0 svc/prometheus-service -n monitoring 9090:9090
+```
 
-Your **LLMOps Flipkart Product Recommender** is now live and running inside a fully functional Kubernetes environment on **Google Cloud Platform** — completing your end-to-end cloud deployment.
+Copy your **External IP** from the VM dashboard and open it in a browser, followed by `:9090`:
+
+```
+http://<your-external-ip>:9090
+```
+
+You should now see the **Prometheus dashboard**:
+
+<p align="center">
+  <img src="img/monitoring/prometheus_dashboard.png" alt="Prometheus Dashboard" width="100%">
+</p>
+
+To verify scraping is working correctly, go to **Status → Target health**.
+You should see the following:
+
+<p align="center">
+  <img src="img/monitoring/prom_target_health.png" alt="Prometheus Target Health" width="100%">
+</p>
+
+If the **State** is “UP”, the metrics are being scraped successfully.
+
+
+
+### 5️⃣ Access Grafana Externally
+
+Open a **third VM terminal**, navigate to your project directory, and run:
+
+```bash
+kubectl port-forward --address 0.0.0.0 svc/grafana-service -n monitoring 3000:3000
+```
+
+Then in your browser, go to:
+
+```
+http://<your-external-ip>:3000
+```
+
+You’ll see the **Grafana login page**:
+
+<p align="center">
+  <img src="img/monitoring/grafana_login.png" alt="Grafana Login Page" width="100%">
+</p>
+
+**Default credentials:**
+
+* Username: `admin`
+* Password: `admin`
+
+After logging in, you’ll be greeted by the **Grafana dashboard**:
+
+<p align="center">
+  <img src="img/monitoring/grafana_dashboard.png" alt="Grafana Dashboard" width="100%">
+</p>
+
+
+
+### 6️⃣ Add Prometheus as a Data Source
+
+Search for **Data sources** in the Grafana sidebar, then click **Add data source**:
+
+<p align="center">
+  <img src="img/monitoring/add_data_source.png" alt="Add Data Source" width="100%">
+</p>
+
+Select the **Prometheus** option:
+
+<p align="center">
+  <img src="img/monitoring/data_source_prom.png" alt="Select Prometheus Data Source" width="100%">
+</p>
+
+Keep the default name and, under **Prometheus server URL**, enter:
+
+```
+http://prometheus-service.monitoring.svc.cluster.local:9090
+```
+
+Scroll down and click **Save & test**.
+
+<p align="center">
+  <img src="img/monitoring/test_success.png" alt="Prometheus Connection Successful" width="100%">
+</p>
+
+If successful, Grafana will confirm the connection.
+
+
+
+### 7️⃣ Create Grafana Dashboards
+
+Go to **Home → Dashboard → + Create Dashboard → + Add Visualization**, and select the Prometheus data source you just configured.
+
+Scroll to the **Metrics** dropdown — if you can see available metrics, the setup is working:
+
+<p align="center">
+  <img src="img/monitoring/metrics.png" alt="Grafana Metrics Dropdown" width="100%">
+</p>
+
+Choose a metric such as `http_requests_total`.
+Then click **Save dashboard**, and **New dashboard** to view your first visualization:
+
+<p align="center">
+  <img src="img/monitoring/first_viz.png" alt="First Grafana Visualization" width="100%">
+</p>
+
+Add another visualization to track an internal metric (e.g., `http_requests_created`):
+
+<p align="center">
+  <img src="img/monitoring/second_viz.png" alt="Second Grafana Visualization" width="100%">
+</p>
+
+You will now see both metrics updating in real time — confirming full integration between **Flask → Prometheus → Grafana**.
+
+
+
+### 🧹 **Cleanup**
+
+After completing your monitoring setup and testing your dashboards, remember to **delete your VM instance** to avoid unnecessary cloud costs.
+
+```bash
+# Example cleanup
+gcloud compute instances delete <your-vm-name> --zone=<your-zone>
+```
+
+✅ **Monitoring successfully configured!**
+Prometheus now scrapes application metrics, and Grafana visualises them in an interactive dashboard.

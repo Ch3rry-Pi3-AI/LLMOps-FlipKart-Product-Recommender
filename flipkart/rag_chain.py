@@ -87,7 +87,7 @@ class RAGChainBuilder:
         self.vector_store = vector_store
 
         # Initialise the Groq model with a moderate creativity level
-        self.model = ChatGroq(model=Config.RAG_MODEL, temperature=0.5)
+        self.model = ChatGroq(model=Config.RAG_MODEL, temperature=1)
 
         # Session-based message history storage
         self.history_store: Dict[str, ChatMessageHistory] = {}
@@ -178,8 +178,8 @@ class RAGChainBuilder:
         rag_chain = (
             {
                 "context": history_aware_retriever | RunnableLambda(_format_docs),
-                "input": RunnablePassthrough(),        # Forward the user query
-                "chat_history": RunnablePassthrough(),  # Include message history
+                "input": RunnablePassthrough(),                                 # Forward the user query
+                "chat_history": RunnableLambda(lambda x: x["chat_history"]),    # Include message history
             }
             | qa_prompt
             | self.model
@@ -189,8 +189,12 @@ class RAGChainBuilder:
         # ----------------------------------------------------------
         # 5. Message History Integration
         # ----------------------------------------------------------
+
+        # base_chain currently returns a string (from StrOutputParser)
+        rag_chain_dict = rag_chain | RunnableLambda(lambda s: {"answer": s})
+        
         return RunnableWithMessageHistory(
-            rag_chain,
+            rag_chain_dict,
             self._get_history,
             input_messages_key="input",
             history_messages_key="chat_history",

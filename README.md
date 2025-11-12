@@ -1,116 +1,139 @@
-# 🔗 **GitHub Integration and Firewall Configuration — LLMOps Flipkart Product Recommender**
+# 🚀 **Kubernetes Deployment — LLMOps Flipkart Product Recommender**
 
-In this stage, we connect the **LLMOps Flipkart Product Recommender** GitHub repository to the **Google Cloud Platform (GCP) Virtual Machine**, allowing direct version control operations from the VM.
-We also configure a **firewall rule** to ensure the VM can communicate securely with GitHub and external services.
+In this stage, we deploy the **LLMOps Flipkart Product Recommender** onto a **Kubernetes cluster** running on our **Minikube setup within a GCP VM**.
+This stage brings the entire project to life — containerising the application and serving it publicly via Kubernetes services.
 
-## 🧭 **Step 1 — Clone the GitHub Repository**
+## 🧭 **Step 1 — Connect Docker to Minikube**
 
-Go to your project’s GitHub repository.
-Click the green **“<> Code”** dropdown and copy the **HTTPS URL** of the repository.
-
-Example:
-
-```
-https://github.com/Ch3rry-Pi3-AI/LLMOps-Anime-Recommender-System.git
-```
-
-Now, in your GCP VM terminal, run:
+In your VM terminal, run the following command:
 
 ```bash
-git clone https://github.com/Ch3rry-Pi3-AI/LLMOps-Anime-Recommender-System.git
+eval $(minikube docker-env)
 ```
 
-(Replace this URL with your own repository link.)
+This command ensures Docker points to Minikube’s internal environment so that your image builds directly inside Minikube’s Docker daemon.
 
-Next, navigate into the cloned directory:
+Now, build your Docker image:
 
 ```bash
-cd LLMOps-Anime-Recommender-System
+docker build -t flask-app:latest .
 ```
 
-You are now inside your project folder within the VM.
+This may take a few minutes to complete, as it will install all dependencies and package your Streamlit app into a container.
 
-## ⚙️ **Step 2 — Configure Git Identity**
-
-Set up your Git global configuration so commits made from the VM are correctly attributed to you.
+Once complete, verify that your image was successfully built:
 
 ```bash
-git config --global user.email "the_rfc@hotmai.co.uk"
-git config --global user.name "Roger J. Campbell"
+docker images
 ```
 
-Verify the configuration with:
+You should see output similar to:
+
+```
+IMAGE                                             ID             DISK USAGE   
+gcr.io/k8s-minikube/storage-provisioner:v5        6e38f40d628d       31.5MB      
+flask-app:latest                                  bd292243bb00        964MB      
+registry.k8s.io/coredns/coredns:v1.12.1           52546a367cc9         75MB      
+registry.k8s.io/etcd:3.6.4-0                      5f1f5298c888        195MB      
+registry.k8s.io/kube-apiserver:v1.34.0            90550c43ad2b         88MB      
+registry.k8s.io/kube-controller-manager:v1.34.0   a0af72f2ec6d       74.9MB      
+registry.k8s.io/kube-proxy:v1.34.0                df0860106674       71.9MB      
+registry.k8s.io/kube-scheduler:v1.34.0            46169d968e92       52.8MB      
+registry.k8s.io/pause:3.10.1                      cd073f4c5f6a        736kB 
+```
+
+Your `flask-app:latest` image is now built and ready to deploy.
+
+## 🔐 **Step 2 — Inject Secrets into Kubernetes**
+
+Next, we need to securely inject your **Groq** and **Hugging Face API keys** into the Kubernetes environment.
+
+Run the following command:
 
 ```bash
-git config --list
+kubectl create secret generic llmops-secrets \
+  --from-literal=GROQ_API_KEY="" \
+  --from-literal=ASTRA_DB_APPLICATION_TOKEN="" \
+  --from-literal=ASTRA_DB_KEYSPACE="default_keyspace" \
+  --from-literal=ASTRA_DB_API_ENDPOINT="" \
+  --from-literal=HF_TOKEN="" \
+  --from-literal=HUGGINGFACEHUB_API_TOKEN=""
 ```
 
-You should see your email and username listed.
+Make sure to replace the empty quotation marks `""` with your actual API keys.
 
-## 🔑 **Step 3 — Generate a GitHub Personal Access Token**
+You should see confirmation:
 
-1. Go to your **GitHub Profile → Settings**.
-2. Scroll down to **Developer Settings**.
-3. Under **Personal access tokens**, click **Tokens (classic)**.
-4. Select **Generate new token → Generate new token (classic)**.
-5. For the **Note**, enter something like `anime-recommend`.
-6. Under **Scopes**, select the following options:
+```
+secret/llmops-secrets created
+```
 
-   * `repo`
-   * `workflow`
-   * `admin:org`
-   * `admin:repo_hook`
-   * `admin:org_hook`
-7. Click **Generate token**.
+## 🧩 **Step 3 — Deploy the Application**
 
-Make sure to **copy the token immediately** — GitHub will not show it again.
-
-## 🚀 **Step 4 — Authenticate and Pull from GitHub**
-
-Now that your token is ready, you can pull from the GitHub repository to your VM.
+Now apply your Kubernetes deployment and service configuration:
 
 ```bash
-git pull origin main
+kubectl apply -f flask-deployment.yaml
 ```
 
-When prompted:
-
-* **Username:** your GitHub username
-* **Password:** your newly generated **personal access token**
-
-Once authenticated, the push will complete successfully.
-
-## 🔥 **Step 5 — Create a GCP Firewall Rule**
-
-Next, configure a firewall rule in GCP to ensure your VM can communicate with GitHub and other services.
-
-1. In the **Google Cloud Console**, navigate to the **Network Security** service.
-2. Under **Cloud NGFW**, click **Firewall rule → + Create firewall policy**.
-3. Set the **Policy name** to:
+Expected output:
 
 ```
-allow-llmops
+deployment.apps/flask-app created
+service/flask-service created
 ```
 
-4. Configure the remaining fields as follows:
+You can verify the pods are running with:
 
-| Field                   | Setting                      |
-| ----------------------- | ---------------------------- |
-| **Targets**             | All instances in the network |
-| **Source IPv4 ranges**  | `0.0.0.0/0`                  |
-| **Protocols and ports** | Allow all                    |
+```bash
+kubectl get pods
+```
 
-5. Click **Create**.
+Example output:
 
-Your firewall policy is now active and allows full communication between your VM, GitHub, and related deployment services.
+```
+NAME                         READY   STATUS    RESTARTS   AGE
+flask-app-58b5995844-66kth   1/1     Running   0          32s
+```
+
+This confirms that your container is up and running successfully inside the cluster.
+
+## 💻 **Step 4 — Forward Ports and Access the App**
+
+In your terminal, run:
+
+```bash
+kubectl port-forward svc/llmops-service 5000:80 --address 0.0.0.0
+```
+
+This forwards external traffic from port **5000** to your Flask app inside Kubernetes.
+
+Keep this terminal open while your application is running.
+
+Now, return to your **GCP Console → VM Instances** page, find your **External IP address**, and click **Copy**.
+In your browser, visit:
+
+```
+http://<YOUR_EXTERNAL_IP>:5000
+```
+
+For example:
+
+```
+http://136.114.199.97:5000
+```
+
+*(Note: do not use `https://` — it may cause connection issues in some environments.)*
+
+If everything is configured correctly, your **LLMOps Flipkart Product Recommender** web app will load in your browser and be fully interactive!
 
 ## ✅ **In Summary**
 
 You have now successfully:
 
-* Cloned your **GitHub repository** into the **GCP VM**.
-* Configured your Git identity for authenticated pushes.
-* Created a **personal access token** for secure GitHub access.
-* Set up a **GCP firewall rule** to allow outgoing and incoming connections.
+* Built and containerised your application using **Docker**.
+* Deployed it on **Kubernetes** via **Minikube**.
+* Injected API secrets into the cluster securely.
+* Exposed the service externally using **port forwarding**.
 
-Your VM is now fully connected to GitHub and ready for CI/CD integration and future Kubernetes deployments.
+Your **LLMOps Flipkart Product Recommender** is now live and running inside a fully functional Kubernetes environment on **Google Cloud Platform** — completing your end-to-end cloud deployment.

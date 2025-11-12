@@ -1,7 +1,7 @@
-# ☸️ **Minikube and kubectl Setup — LLMOps Anime Recommender System**
+# ☸️ **Minikube and kubectl Setup — LLMOps Flipkart Product Recommender**
 
 In this stage, we install and configure **Minikube** and **kubectl** on our **Google Cloud Platform (GCP) Virtual Machine**.
-These tools allow us to create and manage a **local Kubernetes cluster** within the VM, which will later be used to deploy and orchestrate the **LLMOps Anime Recommender System**.
+These tools allow us to create and manage a **local Kubernetes cluster** within the VM, which will later be used to deploy and orchestrate the **LLMOps Flipkart Product Recommender**.
 
 ## 🧭 **Step 1 — Install Minikube**
 
@@ -105,4 +105,4 @@ You have now successfully:
 * Installed **Minikube** and started a local Kubernetes cluster.
 * Installed **kubectl** and verified connectivity to the cluster.
 
-Your GCP VM is now fully configured with **Docker**, **Minikube**, and **kubectl**, enabling you to deploy and manage the **LLMOps Anime Recommender System** in a Kubernetes environment.
+Your GCP VM is now fully configured with **Docker**, **Minikube**, and **kubectl**, enabling you to deploy and manage the **LLMOps Flipkart Product Recommender** in a Kubernetes environment.

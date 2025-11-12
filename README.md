@@ -22,6 +22,7 @@ llmops-flipkart-product-recommender/
 │   ├── __init__.py
 │   ├── custom_exception.py               # Unified exception handling across modules
 │   └── logger.py                         # Centralised logging configuration
+├── main.py                               # 🚀 Entry point for running the recommender
 ├── pyproject.toml                        # 🧩 Project metadata and uv configuration
 ├── requirements.txt                      # 📦 Python dependencies
 ├── setup.py                              # 🔧 Editable install configuration
@@ -29,7 +30,7 @@ llmops-flipkart-product-recommender/
 └── README.md                             # 📖 Project documentation (you are here)
 ```
 
-> 💡 **Note:** The `.env` file contains sensitive API keys and must **not be committed** to version control.
+> 💡 **Note:** The `.env` file contains sensitive API keys and must **never** be committed to version control.
 
 ## ⚙️ **Setup Process**
 
@@ -62,13 +63,11 @@ uv venv --python 3.12
   ```cmd
   .\.venv\Scripts\activate
   ```
-
 * **PowerShell:**
 
   ```powershell
   .\.venv\Scripts\Activate.ps1
   ```
-
 * **macOS / Linux:**
 
   ```bash
@@ -101,19 +100,67 @@ uv pip install -r requirements.txt
 uv lock
 ```
 
-### 4️⃣ Configure Environment Variables
+---
 
-A `.env` file was created to securely store credentials such as:
+## 🔐 **Environment Variable Setup (.env)**
 
-```text
-ASTRA_DB_API_KEY=your_astra_key_here
-HUGGINGFACEHUB_API_KEY=your_huggingface_key_here
-GROQ_API_KEY=your_groq_key_here
+Before running any pipeline, a `.env` file must be created in the project root to store your API credentials.
+
+Create the file:
+
+```bash
+touch .env
 ```
 
-These are automatically loaded in relevant modules via `dotenv`.
+Then add the following entries:
 
-### 5️⃣ Define Project Metadata
+```text
+GROQ_API_KEY=""
+HF_TOKEN=""
+HUGGINGFACEHUB_API_TOKEN=""
+ASTRA_DB_API_ENDPOINT=""
+ASTRA_DB_APPLICATION_TOKEN=""
+ASTRA_DB_KEYSPACE=""
+```
+
+### 🧠 **Where to Get These Keys**
+
+**1️⃣ Groq API Key**
+Go to [https://console.groq.com/](https://console.groq.com/) and sign in or create an account.
+Generate a new API key and paste it into the `GROQ_API_KEY` field.
+
+**2️⃣ Hugging Face Tokens**
+Visit [https://huggingface.co/](https://huggingface.co/) → Profile → *Access Tokens*.
+Create a new access token.
+Use this same token for both `HF_TOKEN` and `HUGGINGFACEHUB_API_TOKEN`.
+
+**3️⃣ AstraDB Credentials**
+Go to [https://astra.datastax.com/](https://astra.datastax.com/) and log in with your account.
+
+Create a new database:
+
+<p align="center">
+  <img src="img/astra_db/create_db.png" alt="Create AstraDB Database" width="100%">
+</p>
+
+Wait for it to initialise (this can take a few minutes).
+Once ready, you should see your database environment:
+
+<p align="center">
+  <img src="img/astra_db/astra_db_env.png" alt="AstraDB Environment Setup" width="100%">
+</p>
+
+Now:
+
+* Copy the **API Endpoint** → `ASTRA_DB_API_ENDPOINT`
+* Generate a **new Application Token** → `ASTRA_DB_APPLICATION_TOKEN`
+* Set the **Keyspace** to `"default_keyspace"`
+
+Your `.env` file should now contain valid API credentials for all required services.
+
+---
+
+### 4️⃣ Define Project Metadata
 
 Project metadata and build configuration are stored in `pyproject.toml`:
 
@@ -129,7 +176,7 @@ requires-python = ">=3.12"
 dev-dependencies = []
 ```
 
-### 6️⃣ Install the Package in Editable Mode
+### 5️⃣ Install the Package in Editable Mode
 
 To allow live updates during development:
 
@@ -139,7 +186,9 @@ uv pip install --editable .
 
 Successful installation confirms your environment is ready.
 
-## 🧩 Integration Guidelines
+---
+
+## 🧩 **Integration Guidelines**
 
 | Folder        | Purpose                                                               |
 | ------------- | --------------------------------------------------------------------- |
@@ -155,8 +204,9 @@ Successful installation confirms your environment is ready.
 
 This setup establishes a **clean, modular, and extensible base** for the **LLMOps FlipKart Product Recommender**, supporting:
 
-* Well-structured environment and dependency management via `uv`
-* Centralised logging and robust exception handling
-* Prepared integration points for monitoring and deployment
+* Structured, reproducible environments via `uv`
+* Centralised logging and exception handling
+* Secure API configuration for Groq, Hugging Face, and AstraDB
+* Ready integration with monitoring and visualisation tools
 
-The next stage will involve **data ingestion and conversion pipelines**, transforming product reviews into **LLM-ready document embeddings** for intelligent product recommendations.
+The next stage will involve **data ingestion and embedding pipelines**, transforming FlipKart reviews into **LLM-ready documents** for intelligent product recommendations.

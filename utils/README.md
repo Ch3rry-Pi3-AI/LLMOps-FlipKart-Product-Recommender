@@ -1,7 +1,3 @@
-Perfect — here’s a concise and accurate version of your README that strictly reflects the actual contents (`custom_exception.py`, `logger.py`, and `__init__.py`) in the **`utils/`** folder of your **LLMOps-FlipKart-Product-Recommender**:
-
-
-
 # `utils/` README — Core Utilities (Custom Exception & Logger)
 
 This folder provides the **core utility modules** used throughout the **LLMOps FlipKart Product Recommender**.
